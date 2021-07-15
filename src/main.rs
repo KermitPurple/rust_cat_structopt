@@ -4,17 +4,12 @@ use std::io::stdin;
 use std::io::prelude::*;
 use structopt::StructOpt;
 
-fn print_file(file_name: &PathBuf) {
-    let display = file_name.display();
-    let mut file = match File::open(file_name) {
-        Err(why) => panic!("Couldn't open {}: {}", display, why),
-        Ok(file) => file
-    };
+fn print_file(file_name: &PathBuf) -> Result<(), std::io::Error> {
     let mut string = String::new();
-    match file.read_to_string(&mut string) {
-        Err(why) => panic!("Couldn't read {}: {}", display, why),
-        Ok(_) => print!("{}", string)
-    };
+    let mut file = File::open(file_name)?;
+    file.read_to_string(&mut string)?;
+    print!("{}", string);
+    Ok(())
 }
 
 fn echo_input(){
@@ -37,10 +32,13 @@ fn main() {
     let k = Kitty::from_args();
     println!("{:#?}", k);
     match k.files.len() {
-        0 => echo_input(),
+        0 => echo_input(), // no args; repeat until ctrl-c
         _ => {
             for file in k.files {
-                print_file(&file);
+                match print_file(&file) {
+                    Err(e) => println!("Kitty: Cannot Open {}: {}", file.display(), e),
+                    _ => (),
+                }
             }
         }
     }
