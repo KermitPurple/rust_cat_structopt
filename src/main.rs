@@ -1,7 +1,7 @@
 use std::fs::File;
-use std::path::PathBuf;
-use std::io::stdin;
 use std::io::prelude::*;
+use std::io::stdin;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 fn print_file(file_name: &PathBuf) -> Result<(), std::io::Error> {
@@ -12,11 +12,10 @@ fn print_file(file_name: &PathBuf) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn echo_input(){
+fn echo_input() {
     loop {
         let mut string = String::new();
-        stdin().read_line(&mut string)
-            .expect("ERROR");
+        stdin().read_line(&mut string).expect("ERROR");
         print!("{}", string);
     }
 }
@@ -35,9 +34,13 @@ fn main() {
         0 => echo_input(), // no args; repeat until ctrl-c
         _ => {
             for file in k.files {
-                match print_file(&file) {
-                    Err(e) => println!("Kitty: Cannot Open {}: {}", file.display(), e),
-                    _ => (),
+                if file.as_os_str().to_str() == Some("-") {
+                    echo_input();
+                } else {
+                    match print_file(&file) {
+                        Err(e) => println!("Kitty: Cannot Open {}: {}", file.display(), e),
+                        _ => (),
+                    }
                 }
             }
         }
