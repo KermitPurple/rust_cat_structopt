@@ -29,7 +29,6 @@ struct Kitty {
 
 fn main() {
     let k = Kitty::from_args();
-    println!("{:#?}", k);
     match k.files.len() {
         0 => echo_input(), // no args; repeat until ctrl-c
         _ => {
