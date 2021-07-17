@@ -5,29 +5,31 @@ use std::io::stdin;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-fn print_file(file_name: &PathBuf, opts: &Opt, line_count: &mut i32) -> Result<(), std::io::Error> {
-    let mut file = File::open(file_name)?;
-    print_lines(&mut file, opts, line_count)?;
-    Ok(())
+fn echo_input(opt: &Opt) {
+    print_lines(vec![Box::new(stdin())], &opt).unwrap();
 }
 
-fn echo_input(opt: &Opt, line_count: &mut i32) {
-    print_lines(&mut stdin(), &opt, line_count).unwrap();
-}
-
-fn print_lines(file: &mut dyn Read, opts: &Opt, line_count: &mut i32) -> Result<(), std::io::Error> {
-    for line in BufReader::new(file).lines() {
-        if opts.number{
-            *line_count += 1;
-            println!("{: >6}: {}", line_count, line.unwrap());
-        } else {
-            println!("{}", line.unwrap());
+fn print_lines(files: Vec<Box<dyn Read>>, opts: &Opt) -> Result<(), std::io::Error> {
+    let mut line_count = 0;
+    let mut prev_blank = false;
+    let iter = files.into_iter().flat_map(|file|BufReader::new(file).lines());
+    for line in iter {
+        let s: String = line.unwrap();
+        let blank = s == "";
+        if opts.squeeze_blank && prev_blank && blank {
+            continue;
         }
+        if opts.number {
+            line_count += 1;
+            print!("{: >6}: ", line_count);
+        }
+        println!("{}", s);
+        prev_blank = blank;
     }
     Ok(())
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, Clone)]
 #[structopt(name = "kitty")]
 struct Opt {
     #[structopt(name = "FILE", parse(from_os_str))]
@@ -35,24 +37,24 @@ struct Opt {
 
     #[structopt(short, long)]
     number: bool,
+
+    #[structopt(short, long)]
+    squeeze_blank: bool,
 }
 
 fn main() {
     let opt = Opt::from_args();
-    let mut line_count = 0;
     match opt.files.len() {
-        0 => echo_input(&opt, &mut line_count), // no args; repeat until ctrl-c
+        0 => echo_input(&opt), // no args; repeat until ctrl-c
         _ => {
-            for file in &opt.files {
+            let files: Vec<Box<dyn Read>> = opt.files.clone().into_iter().map(|file| ->  Box<dyn Read>{
                 if file.as_os_str().to_str() == Some("-") {
-                    echo_input(&opt, &mut line_count);
+                    Box::new(stdin())
                 } else {
-                    match print_file(&file, &opt, &mut line_count) {
-                        Err(e) => println!("Opt: Cannot Open {}: {}", file.display(), e),
-                        _ => (),
-                    }
+                    Box::new(File::open(file).unwrap())
                 }
-            }
+            }).collect();
+            print_lines(files, &opt);
         }
     }
 }
