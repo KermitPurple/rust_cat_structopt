@@ -6,27 +6,31 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 fn echo_input(opt: &Opt) {
-    print_lines(vec![Box::new(stdin())], &opt).unwrap();
+    print_lines(vec![Ok(Box::new(stdin()))], &opt).unwrap();
 }
 
-fn print_lines(files: Vec<Box<dyn Read>>, opts: &Opt) -> Result<(), std::io::Error> {
+fn print_lines(files: Vec<Result<Box<dyn Read>, String>>, opts: &Opt) -> Result<(), std::io::Error> {
     let mut line_count = 0;
     let mut prev_blank = false;
-    let iter = files
-        .into_iter()
-        .flat_map(|file| BufReader::new(file).lines());
-    for line in iter {
-        let s: String = line.unwrap();
-        let blank = s == "";
-        if opts.squeeze_blank && prev_blank && blank {
-            continue;
-        }
-        if opts.number {
-            line_count += 1;
-            print!("{: >6}: ", line_count);
-        }
-        println!("{}", s);
-        prev_blank = blank;
+    for res in files {
+        match res {
+            Ok(file) => {
+                for line in BufReader::new(file).lines() {
+                    let s: String = line.unwrap();
+                    let blank = s == "";
+                    if opts.squeeze_blank && prev_blank && blank {
+                        continue;
+                    }
+                    if opts.number {
+                        line_count += 1;
+                        print!("{: >6}: ", line_count);
+                    }
+                    println!("{}", s);
+                    prev_blank = blank;
+                }
+            },
+            Err(file_name) => println!("Kitty: couldn't find file \"{}\"", file_name)
+        } 
     }
     Ok(())
 }
@@ -49,15 +53,19 @@ fn main() {
     match opt.files.len() {
         0 => echo_input(&opt), // no args; repeat until ctrl-c
         _ => {
-            let files: Vec<Box<dyn Read>> = opt
+            let files: Vec<Result<Box<dyn Read>, String>> = opt
                 .files
                 .clone()
                 .into_iter()
-                .map(|file| -> Box<dyn Read> {
-                    if file.as_os_str().to_str() == Some("-") {
-                        Box::new(stdin())
+                .map(|file| -> Result<Box<dyn Read>, String> {
+                    let file_name = file.clone().into_os_string().into_string().unwrap();
+                    if file_name == "-" {
+                        Ok(Box::new(stdin()))
                     } else {
-                        Box::new(File::open(file).unwrap())
+                        match File::open(file){
+                            Ok(f) => Ok(Box::new(f)),
+                            Err(_) => Err(file_name)
+                        }
                     }
                 })
                 .collect();
