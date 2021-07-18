@@ -10,7 +10,10 @@ fn echo_input(opt: &Opt) {
     print_lines(vec![Ok(Box::new(stdin()))], &opt).unwrap();
 }
 
-fn print_lines(files: Vec<Result<Box<dyn Read>, String>>, opts: &Opt) -> Result<(), std::io::Error> {
+fn print_lines(
+    files: Vec<Result<Box<dyn Read>, String>>,
+    opts: &Opt,
+) -> Result<(), std::io::Error> {
     let mut line_count = 0;
     let mut prev_blank = false;
     let mut out = stdout();
@@ -28,17 +31,21 @@ fn print_lines(files: Vec<Result<Box<dyn Read>, String>>, opts: &Opt) -> Result<
                         print!("{: >6}: ", line_count);
                     }
                     if opts.show_ends {
-                        out.write(&v.into_iter().filter(|item| *item != b'\r').collect::<Vec<u8>>())?;
+                        out.write(
+                            &v.into_iter()
+                                .filter(|item| *item != b'\r')
+                                .collect::<Vec<u8>>(),
+                        )?;
                         print!("$");
                     } else {
-                        out.write(&v);
+                        out.write(&v)?;
                     }
                     println!();
                     prev_blank = blank;
                 }
-            },
-            Err(file_name) => println!("Kitty: couldn't find file \"{}\"", file_name)
-        } 
+            }
+            Err(file_name) => println!("Kitty: couldn't find file \"{}\"", file_name),
+        }
     }
     Ok(())
 }
@@ -73,9 +80,9 @@ fn main() {
                     if file_name == "-" {
                         Ok(Box::new(stdin()))
                     } else {
-                        match File::open(file){
+                        match File::open(file) {
                             Ok(f) => Ok(Box::new(f)),
-                            Err(_) => Err(file_name)
+                            Err(_) => Err(file_name),
                         }
                     }
                 })
