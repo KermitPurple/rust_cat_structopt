@@ -72,6 +72,7 @@ fn main() {
         0 => echo_input(&opt), // no args; repeat until ctrl-c
         _ => { // any other number of args
             let files: Vec<Result<Box<dyn Read>, String>> = opt
+                .files // the files
                 .clone() // clone vector
                 .into_iter() // convert from vector to iter
                 .map(|file| -> Result<Box<dyn Read>, String> {
