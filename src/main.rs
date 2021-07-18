@@ -27,9 +27,11 @@ fn print_lines(files: Vec<Result<Box<dyn Read>, String>>, opts: &Opt) -> Result<
                         line_count += 1;
                         print!("{: >6}: ", line_count);
                     }
-                    out.write(&v.into_iter().filter(|item| *item != b'\r').collect::<Vec<u8>>())?;
                     if opts.show_ends {
+                        out.write(&v.into_iter().filter(|item| *item != b'\r').collect::<Vec<u8>>())?;
                         print!("$");
+                    } else {
+                        out.write(&v);
                     }
                     println!();
                     prev_blank = blank;
