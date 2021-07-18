@@ -21,7 +21,7 @@ fn print_lines(
         match res { // match the result
             Ok(file) => { // if there is no error
                 for line in BufReader::new(file).split(b'\n') { // loop over lines in current file
-                    let mut v = line.unwrap(); // receive the current line as Vec<u8>
+                    let v = line.unwrap(); // receive the current line as Vec<u8>
                     let blank = v.is_empty() || v[0] == b'\r'; // the line is blank if it is empty or the first character is carriage return
                     if opts.squeeze_blank && prev_blank && blank { // if squeeze-blank was passed and the previous line was blank and the current line is blank
                         continue; // go to next iteration
