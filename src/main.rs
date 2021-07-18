@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::stdin;
+use std::io::stdout;
 use std::io::BufReader;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -12,12 +13,13 @@ fn echo_input(opt: &Opt) {
 fn print_lines(files: Vec<Result<Box<dyn Read>, String>>, opts: &Opt) -> Result<(), std::io::Error> {
     let mut line_count = 0;
     let mut prev_blank = false;
+    let mut out = stdout();
     for res in files {
         match res {
             Ok(file) => {
-                for line in BufReader::new(file).lines() {
-                    let s: String = line.unwrap();
-                    let blank = s == "";
+                for line in BufReader::new(file).split(b'\n') {
+                    let v = line.unwrap();
+                    let blank = v.is_empty() || v[0] == b'\r';
                     if opts.squeeze_blank && prev_blank && blank {
                         continue;
                     }
@@ -25,7 +27,8 @@ fn print_lines(files: Vec<Result<Box<dyn Read>, String>>, opts: &Opt) -> Result<
                         line_count += 1;
                         print!("{: >6}: ", line_count);
                     }
-                    println!("{}", s);
+                    out.write(&v)?;
+                    println!();
                     prev_blank = blank;
                 }
             },
