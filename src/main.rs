@@ -18,7 +18,7 @@ fn print_lines(files: Vec<Result<Box<dyn Read>, String>>, opts: &Opt) -> Result<
         match res {
             Ok(file) => {
                 for line in BufReader::new(file).split(b'\n') {
-                    let v = line.unwrap();
+                    let mut v = line.unwrap();
                     let blank = v.is_empty() || v[0] == b'\r';
                     if opts.squeeze_blank && prev_blank && blank {
                         continue;
@@ -27,7 +27,10 @@ fn print_lines(files: Vec<Result<Box<dyn Read>, String>>, opts: &Opt) -> Result<
                         line_count += 1;
                         print!("{: >6}: ", line_count);
                     }
-                    out.write(&v)?;
+                    out.write(&v.into_iter().filter(|item| *item != b'\r').collect::<Vec<u8>>())?;
+                    if opts.show_ends {
+                        print!("$");
+                    }
                     println!();
                     prev_blank = blank;
                 }
@@ -49,6 +52,9 @@ struct Opt {
 
     #[structopt(short, long, help = "Don't show more than one blank line in a row")]
     squeeze_blank: bool,
+
+    #[structopt(short = "E", long, help = "Print $ at the end of each line")]
+    show_ends: bool,
 }
 
 fn main() {
